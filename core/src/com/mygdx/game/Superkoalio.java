@@ -23,6 +23,8 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Pool;
 
+import Helpers.AssetManager;
+
 /** Super Mario Brothers-like very basic platformer, using a tile map built using <a href="http://www.mapeditor.org/">Tiled</a> and a
  * tileset and sprites by <a href="http://www.vickiwenderlich.com/">Vicky Wenderlich</a></p>
  *
@@ -31,9 +33,9 @@ import com.badlogic.gdx.utils.Pool;
 public class Superkoalio extends ApplicationAdapter {
 	/** The player character, has state and state time, */
 
-	static class Koala {
-		static float WIDTH;
-		static float HEIGHT;
+	public static class Koala {
+		public static float WIDTH;
+		public static float HEIGHT;
 		static float MAX_VELOCITY = 10f;//10f
 		static float JUMP_VELOCITY = 40f;//40f
 		static float DAMPING = 0.0f;//0.87f
@@ -58,6 +60,10 @@ public class Superkoalio extends ApplicationAdapter {
 	private Animation<TextureRegion> walk;
 	private Animation<TextureRegion> jump;
 	private Koala koala;
+
+	private AssetManager am;
+
+
 	private Pool<Rectangle> rectPool = new Pool<Rectangle>() {
 		@Override
 		protected Rectangle newObject () {
@@ -74,18 +80,28 @@ public class Superkoalio extends ApplicationAdapter {
 	@Override
 	public void create () {
 		// load the koala frames, split them, and assign them to Animations
+
+
+		/*
+
 		koalaTexture = new Texture("koalio.png");
 		TextureRegion[] regions = TextureRegion.split(koalaTexture, 18, 26)[0];
 		stand = new Animation(0, regions[0]);
 		jump = new Animation(0, regions[1]);
 		walk = new Animation(0.15f, regions[2], regions[3], regions[4]);
 		walk.setPlayMode(Animation.PlayMode.LOOP_PINGPONG);
-
 		// figure out the width and height of the koala for collision
 		// detection and rendering by converting a koala frames pixel
 		// size into world units (1 unit == 16 pixels)
+
 		Koala.WIDTH = 1 / 16f * regions[0].getRegionWidth();
 		Koala.HEIGHT = 1 / 16f * regions[0].getRegionHeight();
+		*/
+
+		am.load();
+
+
+
 
 		// load the map, set the unit scale to 1/16 (1 unit == 16 pixels)
 		map = new TmxMapLoader().load("level1.tmx");
@@ -116,8 +132,12 @@ public class Superkoalio extends ApplicationAdapter {
 		updateKoala(deltaTime);
 
 		// let the camera follow the koala, x-axis only
-		camera.position.x = koala.position.x;
-		camera.update();
+
+		if(koala.position.x > 15){
+			camera.position.x = koala.position.x;
+			camera.update();
+
+		}
 
 		// set the TiledMapRenderer view based on what the
 		// camera sees, and render the map
@@ -297,13 +317,13 @@ public class Superkoalio extends ApplicationAdapter {
 		TextureRegion frame = null;
 		switch (koala.state) {
 			case Standing:
-				frame = stand.getKeyFrame(koala.stateTime);
+				frame = am.stand.getKeyFrame(koala.stateTime);
 				break;
 			case Walking:
-				frame = walk.getKeyFrame(koala.stateTime);
+				frame = am.walk.getKeyFrame(koala.stateTime);//ORIGINAL koala.stateTime
 				break;
 			case Jumping:
-				frame = jump.getKeyFrame(koala.stateTime);
+				frame = am.jump.getKeyFrame(koala.stateTime);
 				break;
 		}
 
