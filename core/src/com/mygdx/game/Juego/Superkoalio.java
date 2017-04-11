@@ -1,10 +1,9 @@
-package com.mygdx.game;
+package com.mygdx.game.Juego;
 
-import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input.Keys;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
@@ -23,15 +22,17 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Pool;
 
-import Helpers.AssetManager;
+import java.util.Calendar;
+
 
 /** Super Mario Brothers-like very basic platformer, using a tile map built using <a href="http://www.mapeditor.org/">Tiled</a> and a
  * tileset and sprites by <a href="http://www.vickiwenderlich.com/">Vicky Wenderlich</a></p>
  *
  * Shows simple platformer collision detection as well as on-the-fly map modifications through destructible blocks!
  * @author mzechner */
-public class Superkoalio extends ApplicationAdapter {
+public class Superkoalio implements Screen {
 	/** The player character, has state and state time, */
+
 
 	public static class Koala {
 		public static float WIDTH;
@@ -50,18 +51,26 @@ public class Superkoalio extends ApplicationAdapter {
 		float stateTime = 0;
 		boolean facesRight = true;
 		boolean grounded = false;
+
 	}
 
-	private TiledMap map;
+
+		private TiledMap map;
 	private OrthogonalTiledMapRenderer renderer;
 	private OrthographicCamera camera;
+
 	private Texture koalaTexture;
+
 	private Animation<TextureRegion> stand;
 	private Animation<TextureRegion> walk;
 	private Animation<TextureRegion> jump;
+	private Helpers.AssetManager am;
+
+
 	private Koala koala;
 
-	private AssetManager am;
+	private long inicio,finale;
+
 
 
 	private Pool<Rectangle> rectPool = new Pool<Rectangle>() {
@@ -71,86 +80,38 @@ public class Superkoalio extends ApplicationAdapter {
 		}
 	};
 	private Array<Rectangle> tiles = new Array<Rectangle>();
+	private Menu game;
 
-	private static final float GRAVITY = -2.5f;//-2.5
+
+	private static final float GRAVITY = -2.5f;
 
 	private boolean debug = true;
 	private ShapeRenderer debugRenderer;
 
-	@Override
-	public void create () {
-		// load the koala frames, split them, and assign them to Animations
+	public Superkoalio(Menu game) {
+		this.game = game;
 
+        Calendar c = Calendar.getInstance();
+        long inicio = c.getTimeInMillis();
 
-		/*
-
-		koalaTexture = new Texture("koalio.png");
-		TextureRegion[] regions = TextureRegion.split(koalaTexture, 18, 26)[0];
-		stand = new Animation(0, regions[0]);
-		jump = new Animation(0, regions[1]);
-		walk = new Animation(0.15f, regions[2], regions[3], regions[4]);
-		walk.setPlayMode(Animation.PlayMode.LOOP_PINGPONG);
-		// figure out the width and height of the koala for collision
-		// detection and rendering by converting a koala frames pixel
-		// size into world units (1 unit == 16 pixels)
-
-		Koala.WIDTH = 1 / 16f * regions[0].getRegionWidth();
-		Koala.HEIGHT = 1 / 16f * regions[0].getRegionHeight();
-		*/
-
-		am.load();
-
-
-
-
-		// load the map, set the unit scale to 1/16 (1 unit == 16 pixels)
 		map = new TmxMapLoader().load("level1.tmx");
-		renderer = new OrthogonalTiledMapRenderer(map, 1 / 16f);//16f
+		renderer = new OrthogonalTiledMapRenderer(map, 1 / 16f);
 
 		// create an orthographic camera, shows us 30x20 units of the world
 		camera = new OrthographicCamera();
 		camera.setToOrtho(false, 30, 20);
+		camera.position.x = 15;
 		camera.update();
 
 		// create the Koala we want to move around the world
 		koala = new Koala();
 		koala.position.set(20, 3);
 
+
+
+
 		debugRenderer = new ShapeRenderer();
 	}
-
-	@Override
-	public void render () {
-		// clear the screen
-		Gdx.gl.glClearColor(0.7f, 0.7f, 1.0f, 1);
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-		// get the delta time
-		float deltaTime = Gdx.graphics.getDeltaTime();
-
-		// update the koala (process input, collision detection, position update)
-		updateKoala(deltaTime);
-
-		// let the camera follow the koala, x-axis only
-
-		if(koala.position.x > 15){
-			camera.position.x = koala.position.x;
-			camera.update();
-
-		}
-
-		// set the TiledMapRenderer view based on what the
-		// camera sees, and render the map
-		renderer.setView(camera);
-		renderer.render();
-
-		// render the koala
-		renderKoala(deltaTime);
-
-		// render debug rectangles
-		if (debug) renderDebug();
-	}
-
 	private void updateKoala (float deltaTime) {
 		if (deltaTime == 0) return;
 
@@ -160,25 +121,25 @@ public class Superkoalio extends ApplicationAdapter {
 		koala.stateTime += deltaTime;
 
 		// check input and apply to velocity & state
-		if ((Gdx.input.isKeyPressed(Keys.SPACE) || isTouched(0.5f, 1)) && koala.grounded) {
+		if ((Gdx.input.isKeyPressed(Input.Keys.SPACE) || isTouched(0.5f, 1)) && koala.grounded) {
 			koala.velocity.y += Koala.JUMP_VELOCITY;
 			koala.state = Koala.State.Jumping;
 			koala.grounded = false;
 		}
 
-		if (Gdx.input.isKeyPressed(Keys.LEFT) || Gdx.input.isKeyPressed(Keys.A) || isTouched(0, 0.25f)) {
+		if (Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A) || isTouched(0, 0.25f)) {
 			koala.velocity.x = -Koala.MAX_VELOCITY;
 			if (koala.grounded) koala.state = Koala.State.Walking;
 			koala.facesRight = false;
 		}
 
-		if (Gdx.input.isKeyPressed(Keys.RIGHT) || Gdx.input.isKeyPressed(Keys.D) || isTouched(0.25f, 0.5f)) {
+		if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D) || isTouched(0.25f, 0.5f)) {
 			koala.velocity.x = Koala.MAX_VELOCITY;
 			if (koala.grounded) koala.state = Koala.State.Walking;
 			koala.facesRight = true;
 		}
 
-		if (Gdx.input.isKeyJustPressed(Keys.B))
+		if (Gdx.input.isKeyJustPressed(Input.Keys.B))
 			debug = !debug;
 
 		// apply gravity if we are falling
@@ -264,7 +225,8 @@ public class Superkoalio extends ApplicationAdapter {
 
 		if (koala.position.y <= 0)
 		{
-			Gdx.app.log ("muerte", "Koala Dead");
+			koala.position.x = 20;
+			koala.position.y = 3;
 		}
 
 	}
@@ -320,11 +282,12 @@ public class Superkoalio extends ApplicationAdapter {
 				frame = am.stand.getKeyFrame(koala.stateTime);
 				break;
 			case Walking:
-				frame = am.walk.getKeyFrame(koala.stateTime);//ORIGINAL koala.stateTime
+				frame = am.walk.getKeyFrame(koala.stateTime);
 				break;
 			case Jumping:
 				frame = am.jump.getKeyFrame(koala.stateTime);
 				break;
+
 		}
 
 		// draw the koala, depending on the current velocity
@@ -334,6 +297,7 @@ public class Superkoalio extends ApplicationAdapter {
 		batch.begin();
 		if (koala.facesRight) {
 			batch.draw(frame, koala.position.x, koala.position.y, Koala.WIDTH, Koala.HEIGHT);
+
 		} else {
 			batch.draw(frame, koala.position.x + Koala.WIDTH, koala.position.y, -Koala.WIDTH, Koala.HEIGHT);
 		}
@@ -349,18 +313,6 @@ public class Superkoalio extends ApplicationAdapter {
 
 		debugRenderer.setColor(Color.YELLOW);
 		TiledMapTileLayer layer = (TiledMapTileLayer)map.getLayers().get("walls");
-		TiledMapTileLayer layerIrrompible = (TiledMapTileLayer)map.getLayers().get("irrompible");
-
-		debugRomper(layer);
-
-		debugRomper(layerIrrompible);
-
-
-		debugRenderer.end();
-	}
-
-	private void debugRomper(TiledMapTileLayer layer) {
-
 		for (int y = 0; y <= layer.getHeight(); y++) {
 			for (int x = 0; x <= layer.getWidth(); x++) {
 				Cell cell = layer.getCell(x, y);
@@ -370,6 +322,68 @@ public class Superkoalio extends ApplicationAdapter {
 				}
 			}
 		}
+		debugRenderer.end();
+	}
+
+	@Override
+	public void show() {
+
+	}
+
+	@Override
+	public void render(float delta) {
+		// clear the screen
+
+		// get the delta time
+		float deltaTime = Gdx.graphics.getDeltaTime();
+
+
+
+		if(koala.position.x >= 15 && koala.position.x <196) {
+			camera.position.x = koala.position.x;
+
+		}
+
+
+
+		camera.update();
+
+		// set the TiledMapRenderer view based on what the
+		// camera sees, and render the map
+		renderer.setView(camera);
+		renderer.render();
+
+
+
+
+		// render debug rectangles
+		if (debug) renderDebug();
+
+
+		// render the koala
+		renderKoala(deltaTime);
+		// update the koala (process input, collision detection, position update)
+		updateKoala(deltaTime);
+	}
+
+	@Override
+	public void resize(int width, int height) {
+
+	}
+
+	@Override
+	public void pause() {
+
+	}
+
+	@Override
+	public void resume() {
+
+	}
+
+	@Override
+	public void hide() {
+
 	}
 
 	@Override
